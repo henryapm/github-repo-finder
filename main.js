@@ -1,12 +1,14 @@
-const selectEl = document.querySelector('#selectLanguage');
+const selectLanguageEl = document.querySelector('#selectLanguage');
+const repoEl = document.querySelector('.repo');
+const refreshBtn = document.querySelector('.refresh__btn');
 const optionsEndPoint = 'https://raw.githubusercontent.com/kamranahmedse/githunt/master/src/components/filters/language-filter/languages.json';
-const githubEndPoint = 'https://api.github.com'
+const githubEndPoint = 'https://api.github.com';
 
 async function displayOptions(){
   const response = await fetch(optionsEndPoint);
   const data = await response.json();
   data.forEach(element => {
-    selectEl.innerHTML += 
+    selectLanguageEl.innerHTML += 
     /*html*/
     `
       <option value="${element.title}">
@@ -18,33 +20,71 @@ async function displayOptions(){
 
 displayOptions()
 
-selectEl.addEventListener('change', function(){
-  if (!localStorage.getItem(selectEl.value)) {
-    getFromEndPoint();
-  } else {
-    getFromLocalStorage();
-  }
-})
+selectLanguageEl.addEventListener('change', () => retreiveRepo());
 
-async function getFromEndPoint(){
-  let githubResponse = await fetch(`${githubEndPoint}/search/repositories?q=${selectEl.value}`);
-  let githubData = await githubResponse.json();
-  localStorage.setItem(selectEl.value, JSON.stringify(githubData));
-  console.log('getting date from Github', githubData);
-  console.log(githubData.items)
+async function retreiveRepo(){
+  displayInitialClass()
+  const language = selectLanguageEl.value
+  if (!localStorage.getItem(language)) {
+    try{
+      displayRepo(await getRepoFromEndPoint(language));
+    }catch(err){
+      displayErrorClass()
+      repoEl.textContent = 'Error fetching repositories'
+    }
+  } else {
+    displayRepo(getRepoFromLocalStorage(language));
+  }
 }
 
-function getFromLocalStorage(){
-  localStorageData = localStorage.getItem(selectEl.value);
-  jsonData = JSON.parse(localStorageData);
-  console.log('getting from storage', jsonData);
-  console.log(jsonData.items[getRandomInt(30)]);
+async function getRepoFromEndPoint(language){
+  repoEl.innerHTML = 'Loading, please wait..'
+  let githubResponse = await fetch(`${githubEndPoint}/search/repositories?q=${language}`);
+  let githubData = await githubResponse.json();
+  localStorage.setItem(language, JSON.stringify(githubData));
+  console.log('git', githubData)
+  return randomRepo(githubData)
+}
+
+function getRepoFromLocalStorage(language){
+  localStorageData = localStorage.getItem(language);
+  storageData = JSON.parse(localStorageData);
+  console.log('storage', storageData)
+  return randomRepo(storageData)
 }
 
 function getRandomInt(max) {
   return Math.floor(Math.random() * max);
 }
 
-function displayRepo(repo){
-  
+function randomRepo(repos){
+  return repos.items[getRandomInt(repos.items.length)]
 }
+
+function displayRepo(repo){
+  repoEl.innerHTML = 
+  /*html*/
+  `
+  <h3>${repo.full_name}</h3>
+  <p>${repo.description}</p>
+  <div class="stats">
+    <span>&#9733;${repo.stargazers_count}</span>
+    <span><i class="fa-solid fa-code-fork"></i>${repo.forks_count}</span>
+    <span>
+      <i class="fa-solid fa-circle-info"></i>${repo.open_issues_count}
+    </span>
+  </div>
+  `
+}
+
+function displayErrorClass(){
+  repoEl.classList.add('error')
+}
+
+function displayInitialClass(){
+  repoEl.classList.remove('error')
+}
+
+refreshBtn.addEventListener('click', function(){
+  retreiveRepo(selectLanguageEl.value)
+})
