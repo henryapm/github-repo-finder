@@ -30,7 +30,7 @@ async function retreiveRepo(){
       displayRepo(await getRepoFromEndPoint(language));
     }catch(err){
       displayErrorClass()
-      repoEl.textContent = 'Error fetching repositories'
+      repoEl.textContent = 'Error fetching repositories' + err;
     }
   } else {
     displayRepo(getRepoFromLocalStorage(language));
